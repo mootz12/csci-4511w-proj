@@ -11,6 +11,7 @@ num_dealt = 0
 
 # Define initial cash stack for player
 pool = 10000
+bet = 2
 
 def main():
     played, money = play_games(deck, 100)
@@ -112,7 +113,7 @@ def play_game(deck, games):
     random.shuffle(deck)
     num_games = 0;
     while num_games <= games:
-        play_hand(deck)
+        pool += bet*play_hand(deck)
         num_games += 1
         if num_dealt > (sizeof(deck) / 2):
             deck = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]*(4*4)
