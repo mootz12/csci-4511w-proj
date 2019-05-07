@@ -14,11 +14,14 @@ pool = 10000
 bet = 2
 
 def main():
-    played, money = play_games(deck, 100)
-    print("Played " + games + " games for a return of " + money + "\n")
+    global deck
+    games = 5
+    played, money = play_game(deck, games)
+    print("Played " + str(games) + " games for a return of " + str(money) + "\n")
 
 # Helper function to deal 2 cards
 def deal(deck):
+    global num_dealt
     hand = []
     num_dealt += 2
     for i in range(2):
@@ -32,25 +35,40 @@ def score(hand):
     for card in hand:
         if 10 <= card <= 13:
             score += 10
-        elif card = 14: #condition where card is an Ace
+        elif card == 14: #condition where card is an Ace
             if score > 10:
-                score += 11
+                score += 1
             else:
-                score +=1
+                score += 11
         else:
             score += card
+    return score
 
 # Helper functions to eval hand scores
 def is_blackjack(hand):
-    score = score(hand)
-    return score == 21
+    value = 0
+    value = score(hand)
+    return value == 21
 
 def is_bust(hand):
-    score = score(hand)
-    return score > 21
+    value = 0
+    value = score(hand)
+    return value > 21
+
+def can_split(hand):
+    return hand[0] == hand[1]
 
 # Player action -> hit
 def hit(hand):
+    global num_dealt
+    card = deck.pop()
+    num_dealt += 1
+    hand.append(card)
+    print("Hit: " + str(card))
+    return hand
+
+def hit_dealer(hand):
+    global num_dealt
     card = deck.pop()
     num_dealt += 1
     hand.append(card)
@@ -90,35 +108,73 @@ def payout_hand(dealer, player):
 
     return player_out
 
+def play_turn(dealer, player):
+    stand = False
+    valid = True
+    payout = 0
+    print("Dealer showing " + str(dealer[0]))
+    print("You have " + str(player[0]) + " - " + str(player[1]))
+    # Player plays hand
+    while valid and not stand:
+        print("Your score is: " + str(score(player)))
+        if can_split(player):
+            choice = input("Hit, stand, double, or split? (h, s, d, p): ")
+        else:
+            choice = input("Hit, stand, or double? (h, s, d): ")
+        if can_split(player) and choice == "p":
+            hand1 = [player[0]]
+            hit(hand1)
+            hand2 = [player[1]]
+            hit(hand2)
+            return play_turn(dealer,hand1) + play_turn(dealer,hand2)
+        elif choice == "d":
+            valid = False
+            hit(player)
+            print("Hand over. Player: " + str(score(player)))
+            return 2*payout_hand(dealer, player)
+        elif choice == "h":
+            hit(player)
+            if (is_bust(player) or is_blackjack(dealer)):
+                valid = False
+        elif choice == "s":
+            stand = True
+        else:
+            print("Invalid input. Please try again.")
+    print("Hand over. Player: " + str(score(player)))
+    return payout_hand(dealer, player)
+
+
 def play_hand(deck):
+    payout = 0
     dealer = deal(deck)
     player = deal(deck)
-    print("Dealer showing " + dealer[0] + "\n")
-    print("You have " + player[0] + player[1] + "\n")
-    # PLayer plays hand
-    choice = input("Hit or stand? (h or s): ")
-    while (choice[0] == "h" or choice[0] == "H"):
-        hit(player)
-        if (is_bust(player) or is_blackjack(dealer)):
-            break
-        choice= input("New score is " + score(player) + " hit or stand? (h or s): ")
-    # Dealer plays hand
+    # Play dealer to allow for splits to play against same dealer
     while score(dealer) < 17:
-        hit(dealer)
+        hit_dealer(dealer)
         if(is_bust(dealer) or is_blackjack(dealer)):
             break
-    return payout_hand
+    payout = play_turn(dealer, player)
+    print("Dealer: " + str(score(dealer)))
+    return payout
 
 def play_game(deck, games):
+    global pool
+    global bet
+    global num_dealt
     random.shuffle(deck)
     num_games = 0;
     while num_games <= games:
         pool += bet*play_hand(deck)
+        print("Your total pool is now: " + str(pool))
+        print("\n")
         num_games += 1
-        if num_dealt > (sizeof(deck) / 2):
+        if num_dealt > ((4*4*13) / 2):
             deck = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]*(4*4)
             random.shuffle(deck)
             num_dealt = 0
         if pool < 0:
             break
     return num_games, pool
+
+if __name__ == "__main__":
+    main()
