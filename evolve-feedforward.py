@@ -1,5 +1,5 @@
 """
-2-input XOR example -- this is most likely the simplest possible example.
+NEAT Algorithm for Blackjack
 """
 
 from __future__ import print_function
