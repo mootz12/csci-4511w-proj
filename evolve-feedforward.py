@@ -1,67 +1,76 @@
 """
-NEAT Algorithm for Blackjack
+NEAT Blackjack
 """
 
 from __future__ import print_function
+from blackjack import *
+
 import os
+import pickle
+
+import cart_pole
+
 import neat
 import visualize
 
-# 2-input XOR inputs and expected outputs.
-xor_inputs = [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)]
-xor_outputs = [   (0.0,),     (1.0,),     (1.0,),     (0.0,)]
+runs_per_net = 5
+
+
+# Use the NN network phenotype and the discrete actuator force function.
+def eval_genome(genome, config):
+
+    fitnesses = []
+
+    for runs in range(runs_per_net):
+        fitness = run_blackjack(genome, config)
+
+        fitnesses.append(fitness)
+
+    # The genome's fitness is its worst performance across all runs.
+    return min(fitnesses)
 
 
 def eval_genomes(genomes, config):
     for genome_id, genome in genomes:
-        genome.fitness = 4.0
-        net = neat.nn.FeedForwardNetwork.create(genome, config)
-        for xi, xo in zip(xor_inputs, xor_outputs):
-            output = net.activate(xi)
-            genome.fitness -= (output[0] - xo[0]) ** 2
+        genome.fitness = eval_genome(genome, config)
 
 
-def run(config_file):
-    # Load configuration.
+def run():
+    # Load the config file, which is assumed to live in
+    # the same directory as this script.
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(local_dir, 'config-feedforward')
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                         config_file)
+                         config_path)
 
-    # Create the population, which is the top-level object for a NEAT run.
-    p = neat.Population(config)
-
-    # Add a stdout reporter to show progress in the terminal.
-    p.add_reporter(neat.StdOutReporter(True))
+    pop = neat.Population(config)
     stats = neat.StatisticsReporter()
-    p.add_reporter(stats)
-    p.add_reporter(neat.Checkpointer(5))
+    pop.add_reporter(stats)
+    pop.add_reporter(neat.StdOutReporter(True))
 
-    # Run for up to 300 generations.
-    winner = p.run(eval_genomes, 300)
+    pe = neat.ParallelEvaluator(4, eval_genome)
+    winner = pop.run(pe.evaluate)
 
-    # Display the winning genome.
-    print('\nBest genome:\n{!s}'.format(winner))
+    # Save the winner.
+    with open('winner-feedforward', 'wb') as f:
+        pickle.dump(winner, f)
 
-    # Show output of the most fit genome against training data.
-    print('\nOutput:')
-    winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
-    for xi, xo in zip(xor_inputs, xor_outputs):
-        output = winner_net.activate(xi)
-        print("input {!r}, expected output {!r}, got {!r}".format(xi, xo, output))
+    print(winner)
 
-    node_names = {-1:'A', -2: 'B', 0:'A XOR B'}
+    visualize.plot_stats(stats, ylog=True, view=True, filename="feedforward-fitness.svg")
+    visualize.plot_species(stats, view=True, filename="feedforward-speciation.svg")
+
+    node_names = {-1: 'x', -2: 'dx', -3: 'theta', -4: 'dtheta', 0: 'control'}
     visualize.draw_net(config, winner, True, node_names=node_names)
-    visualize.plot_stats(stats, ylog=False, view=True)
-    visualize.plot_species(stats, view=True)
 
-    p = neat.Checkpointer.restore_checkpoint('neat-checkpoint-4')
-    p.run(eval_genomes, 10)
+    visualize.draw_net(config, winner, view=True, node_names=node_names,
+                       filename="winner-feedforward.gv")
+    visualize.draw_net(config, winner, view=True, node_names=node_names,
+                       filename="winner-feedforward-enabled.gv", show_disabled=False)
+    visualize.draw_net(config, winner, view=True, node_names=node_names,
+                       filename="winner-feedforward-enabled-pruned.gv", show_disabled=False, prune_unused=True)
 
 
 if __name__ == '__main__':
-    # Determine path to configuration file. This path manipulation is
-    # here so that the script will run successfully regardless of the
-    # current working directory.
-    local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, 'config-feedforward')
-    run(config_path)
+    run()

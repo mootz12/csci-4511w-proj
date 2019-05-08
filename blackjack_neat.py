@@ -16,7 +16,7 @@ num_dealt = 0
 pool = 5000
 bet = 2
 
-def main(genome, config):
+def run_blackjack(genome, config):
     global deck
     games = 4000
     nn = neat.nn.FeedForwardNetwork(genome, config)
@@ -208,4 +208,4 @@ def play_game(deck, games):
     return num_games, pool
 
 if __name__ == "__main__":
-    main()
+    run_blackjack()
