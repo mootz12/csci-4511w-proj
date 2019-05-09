@@ -8,8 +8,6 @@ from blackjack import *
 import os
 import pickle
 
-import cart_pole
-
 import neat
 import visualize
 
@@ -18,11 +16,12 @@ runs_per_net = 5
 
 # Use the NN network phenotype and the discrete actuator force function.
 def eval_genome(genome, config):
+    nn = neat.nn.FeedForwardNetwork(genome, config)
 
     fitnesses = []
 
     for runs in range(runs_per_net):
-        fitness = run_blackjack(genome, config)
+        fitness = run_blackjack(nn)
 
         fitnesses.append(fitness)
 
