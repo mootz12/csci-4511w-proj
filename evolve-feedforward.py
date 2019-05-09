@@ -3,7 +3,7 @@ NEAT Blackjack
 """
 
 from __future__ import print_function
-from blackjack import *
+from blackjack_neat import *
 
 import os
 import pickle
@@ -11,22 +11,16 @@ import pickle
 import neat
 import visualize
 
-runs_per_net = 5
+runs_per_net = 1
 
 
 # Use the NN network phenotype and the discrete actuator force function.
 def eval_genome(genome, config):
-    nn = neat.nn.FeedForwardNetwork(genome, config)
+    nn = neat.nn.FeedForwardNetwork.create(genome, config)
 
-    fitnesses = []
+    fitness = run_blackjack(nn)
 
-    for runs in range(runs_per_net):
-        fitness = run_blackjack(nn)
-
-        fitnesses.append(fitness)
-
-    # The genome's fitness is its worst performance across all runs.
-    return min(fitnesses)
+    return fitness
 
 
 def eval_genomes(genomes, config):
@@ -48,8 +42,8 @@ def run():
     pop.add_reporter(stats)
     pop.add_reporter(neat.StdOutReporter(True))
 
-    pe = neat.ParallelEvaluator(4, eval_genome)
-    winner = pop.run(pe.evaluate)
+    #pe = neat.ParallelEvaluator(4, eval_genome)
+    winner = pop.run(eval_genomes, 50)
 
     # Save the winner.
     with open('winner-feedforward', 'wb') as f:

@@ -17,10 +17,11 @@ pool = 5000
 bet = 2
 
 def run_blackjack(nn):
-    global deck
+    global pool
+    pool = 5000
     games = 1000
-    played, money = play_game(deck, games, nn)
-    return played, money
+    played, money = play_game(games, nn)
+    return float(money)
     #print("Played " + str(games) + " games for a return of " + str(money) + "\n")
 
 # Helper functions for NEAT nn
@@ -35,11 +36,11 @@ def get_state(dealer, player):
 
 # Translates a 0-1 move to h, s,
 def get_move(move):
-    if move <= 0.25:
+    if move <= 0.33:
         return "h"
-    elif move <= 0.5:
+    elif move <= 0.66:
         return "s"
-    elif move <= 0.75:
+    elif move <= 1.0:
         return "d"
     else:
         return "p"
@@ -134,6 +135,7 @@ def payout_hand(dealer, player):
     return player_out
 
 def play_turn(dealer, player, nn):
+    global pool
     stand = False
     valid = True
     payout = 0
@@ -150,13 +152,14 @@ def play_turn(dealer, player, nn):
         '''
         inputs = get_state(dealer, player)
         action = nn.activate(inputs)
-        choice = get_move(action)
+        choice = get_move(action[0])
+        print(choice)
         if can_split(player) and choice == "p":
             hand1 = [player[0]]
             hit(hand1)
             hand2 = [player[1]]
             hit(hand2)
-            return play_turn(dealer,hand1) + play_turn(dealer,hand2)
+            return play_turn(dealer,hand1, nn) + play_turn(dealer, hand2, nn)
         elif choice == "d":
             valid = False
             hit(player)
@@ -169,6 +172,8 @@ def play_turn(dealer, player, nn):
         elif choice == "s":
             stand = True
         else:
+            pool -= 1
+            valid = False
             print("Invalid input. Please try again.")
     print("Hand over. Player: " + str(score(player)))
     return payout_hand(dealer, player)
@@ -183,14 +188,15 @@ def play_hand(deck, nn):
         hit_dealer(dealer)
         if(is_bust(dealer) or is_blackjack(dealer)):
             break
-    payout = play_turn(dealer, player)
+    payout = play_turn(dealer, player, nn)
     print("Dealer: " + str(score(dealer)))
     return payout
 
-def play_game(deck, games):
+def play_game(games, nn):
     global pool
     global bet
     global num_dealt
+    global deck
     random.shuffle(deck)
     num_games = 0;
     while num_games <= games:
@@ -198,6 +204,7 @@ def play_game(deck, games):
         print("Your total pool is now: " + str(pool))
         print("\n")
         num_games += 1
+        print(num_games)
         if num_dealt > ((4*4*13) / 2):
             deck = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]*(4*4)
             random.shuffle(deck)
